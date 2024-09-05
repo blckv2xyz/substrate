@@ -6,14 +6,12 @@ Substrate is a wrapper for Pinata IPFS services, providing simplified item manag
 
 ## Installation
 
-```bash
-npm install @your-package/substrate
-```
+NOT FOR PRODUCTION USE. This is a work in progress and not yet ready for production use. Grab index.js and add it to your project. NPM package coming soon.
 
 ## Usage
 
 ```javascript
-import Substrate from '@your-package/substrate';
+import Substrate from 'substrate';
 
 const substrate = new Substrate({
   client: 'your-client-identifier',
@@ -23,6 +21,7 @@ const substrate = new Substrate({
   privateGateway: 'https://api.pinata.cloud'
 });
 ```
+
 ## API Reference
 
 ### API Overview
