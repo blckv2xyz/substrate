@@ -12,14 +12,19 @@ class Substrate {
         privateGateway // A private gateway URL used for resolving IPFS hashes server-side etc.
     }) {
 
+        if(!client){
+            throw new Error('Client identifier is required');
+        }
+
         if(!pinataKey || !pinataSecret) {
             throw new Error('Pinata key and secret are required');
         }
 
         this.pinata = new pinataSDK(pinataKey, pinataSecret);
-        this.environment = process.env.NODE_ENV;
         this.publicGateway = publicGateway;
         this.privateGateway = privateGateway;
+        this.client = client;
+
     }
 
     // Creates a unique id and stores the item in the pinata cloud, return item hash
@@ -33,10 +38,10 @@ class Substrate {
             name: uniqueItemId,
             keyvalues: {
                 __is_item: 'true',
-                environment: this.environment,
                 type,
                 created: new Date().getTime(),
-                owner
+                owner,
+                client: this.client
             }
         }
 
@@ -65,10 +70,10 @@ class Substrate {
 
         keyvalues = {
             ...keyvalues,
-            environment: this.environment,
             type,
             itemHash,
             created: time,
+            client: this.client
         }
         
         if(search){
@@ -105,8 +110,8 @@ class Substrate {
             throw new Error('itemHash is required in getItem');
 
         const keyvalues = {
-            environment: {
-                value: this.environment,
+            client: {
+                value: this.client,
                 op: 'eq'
             }
         }
@@ -153,8 +158,8 @@ class Substrate {
         }
 
         const keyvalues = {
-            environment: {
-                value: this.environment,
+            client: {
+                value: this.client,
                 op: 'eq'
             },
             itemHash: {
@@ -203,8 +208,8 @@ class Substrate {
         }
 
         const keyvalues = {
-            environment: {
-                value: this.environment,
+            client: {
+                value: this.client,
                 op: 'eq'
             },
             type: {
