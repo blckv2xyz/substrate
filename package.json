@@ -1,0 +1,16 @@
+{
+    "name": "substrate",
+    "type": "module",
+    "version": "0.1.0",
+    "description": "Substrate is a wrapper for Pinata IPFS services, providing simplified item management, data storage, and retrieval with environment-specific metadata handling.",
+    "main": "src/index.js",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "author": "Xtych",
+    "license": "MIT",
+    "dependencies": {
+        "crypto-js": "^4.1.1",
+        "@pinata/sdk": "^1.0.0"
+    }
+}
