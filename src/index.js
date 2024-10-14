@@ -1,5 +1,6 @@
-import pinataSDK from '@pinata/sdk';
+global._babelPolyfill = false;
 import CryptoJS from 'crypto-js';
+import pinataSDK from '@pinata/sdk';
 import _ from 'lodash';
 
 class Substrate {
@@ -51,11 +52,26 @@ class Substrate {
             type,
             created: new Date().getTime(),
             creator: owner,
-            client: this.client,
+            client: this.client
         }, {pinataMetadata: metadata});
 
         // Return the ipfs hash
         return response.IpfsHash;
+    }
+
+    async updateItemMetadata({itemHash, keyvalues, overwrite = false}) {
+
+        const item = await this.getItem({itemHash});
+
+        const metadata = item.metadata;
+
+        if(!overwrite) {
+            keyvalues = {...metadata.keyvalues, ...keyvalues};
+        }
+
+        return this.pinata.hashMetadata(itemHash, {
+            keyvalues
+        });
     }
 
     generateSecureUniqueId(type) {
@@ -67,6 +83,16 @@ class Substrate {
     async addItemData({itemHash, type, data, unique = true, keyvalues = {}, search = null}) {
         
         const time = new Date().getTime();
+
+        // Get the item
+        const item = await this.getItem({itemHash});
+
+        if(!item){
+            throw new Error('Item not found');
+        }
+
+        // Get the item type
+        const itemType = item.metadata.keyvalues.type;
 
         keyvalues = {
             ...keyvalues,
@@ -93,6 +119,8 @@ class Substrate {
 
         // Check if the data is a string or an object
         if(_.isPlainObject(data)){
+            data.dataType = type;
+            data.itemType = itemType;
             data.itemHash = itemHash;
             data.created = time;
             data.client = this.client;
@@ -143,6 +171,68 @@ class Substrate {
         }
 
         return null;
+
+    }
+
+    async getItemByMetadata({resolve = true, ...keyvalues}) {
+
+
+        // Go through each keyvalue and convert to pinata format
+        for(const key in keyvalues) {
+            const value = keyvalues[key];
+            if(value instanceof Object && value.value){
+                keyvalues[key] = {
+                    value: value.value,
+                    op: value.op || 'eq'
+                }
+            }
+            else {
+                keyvalues[key] = {
+                    value: value,
+                    op: 'eq'
+                }
+            }
+        }
+
+        const {rows} = await this.pinata.pinList({
+            status: 'pinned',
+            metadata: {
+                keyvalues
+            }
+        });
+
+        if(rows.length > 0) {
+            if(resolve) {
+                const resolved = await this.resolve(rows[0].ipfs_pin_hash).then(res => res.json());
+                resolved.itemHash = rows[0].ipfs_pin_hash;
+                return resolved;
+            }
+            else {
+                return rows[0];
+            }
+        }
+        else {
+            return null;
+        }
+        
+    }
+
+    async getItemDataByMetadata({metadata, resolve = false}) {
+
+        const {rows} = await this.pinata.pinList({
+            status: 'pinned',
+            metadata: metadata
+        });
+
+        if(resolve) {
+            let resolved = 'Unable to resolve data';
+            if(rows?.length > 0)
+                resolved = await this.resolve(rows[0].ipfs_pin_hash).then(res => res.json());
+            return resolved;
+        }
+        else {
+            return rows;
+        }
 
     }
 
@@ -275,12 +365,16 @@ class Substrate {
         }
     }
 
+    cleanCID(cid){
+        return cid.match(/^ipfs:\/\//) ? cid.replace(/^ipfs:\/\//, '') : cid;
+    }
+
     async resolve(cid) {
-        return fetch(this.publicGateway.replace('{cid}', cid));
+        return fetch(this.publicGateway.replace('{cid}', this.cleanCID(cid)));
     }
 
     async privateResolve(cid) {
-        return fetch(this.privateGateway.replace('{cid}', cid));
+        return fetch(this.privateGateway.replace('{cid}', this.cleanCID(cid)));
     }
 
     async indexItem({itemHash, dataTypes, search = null}) {

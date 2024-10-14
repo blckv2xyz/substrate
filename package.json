@@ -1,5 +1,5 @@
 {
-    "name": "substrate",
+    "name": "@xtych/substrate",
     "type": "module",
     "version": "0.1.0",
     "description": "Substrate is a wrapper for Pinata IPFS services, providing simplified item management, data storage, and retrieval with environment-specific metadata handling.",
