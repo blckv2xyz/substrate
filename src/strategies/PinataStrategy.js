@@ -133,7 +133,7 @@ export class PinataStrategy extends StorageStrategy {
 
         const args = {
             status: 'pinned',
-            pageLimit: limit,
+            pageLimit: limit + 1, // Add one to check if there is a next page
             pageOffset: (page - 1) * limit,
             metadata: {
                 keyvalues: _keyvalues
@@ -142,11 +142,24 @@ export class PinataStrategy extends StorageStrategy {
 
         const response = await this.pinata.pinList(args);
         if(response.rows.length < 1){
-            return [];
+            return {
+                items: [],
+                hasMore: false
+            }
         }
 
-        const items = await Promise.all(response.rows.map(row => this.parseItem(row)));
-        return items;
+        let hasMore = response.rows.length > limit;
+
+        // Make up for the added item for hasMore check
+        let items = response.rows.slice(0, limit);
+
+        // Parse the items
+        items = await Promise.all(items.map(row => this.parseItem(row)));
+
+        return {
+            items,
+            hasMore
+        };
     }
 
     async addItemData({ itemHash, type, data, keep = false, keyvalues = {}, search = null }) {
